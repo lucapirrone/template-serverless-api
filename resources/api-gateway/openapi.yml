@@ -1,0 +1,305 @@
+openapi: 3.0.0
+info:
+  version: '1.0.0'
+  title: Backend RESTful API Interface
+components:
+  schemas:
+    objectId:
+      type: string
+      description: "MongoDB ObjectID"
+      example: "507f1f77bcf86cd799439011"
+    Societa:
+      type: object
+      required:
+        - nome
+        - colore
+      properties:
+        nome:
+          type: string
+        logo:
+          type: string
+        colore:
+          type: string
+    Categoria:
+      type: object
+      required:
+        - nome
+      properties:
+        nome:
+          type: string
+    ArraySocieta:
+      type: array
+      items:
+        $ref: "#/components/schemas/Societa"
+    ArrayCategoria:
+      type: array
+      items:
+        $ref: "#/components/schemas/Categoria"
+    BasicCoupon:
+      type: object
+      required:
+        - societa
+        - categoria
+        - tipo
+        - codice
+        - importo
+        - valuta
+      properties:
+        descrizione:
+          type: string
+        note:
+          type: string
+        codice:
+          type: string
+        tipo:
+          type: string
+          enum: ["qrcode", "barcode", "alfanumerico"]
+        importo:
+          type: number
+        valuta:
+          type: string
+        sitoWeb:
+          type: string
+        scadenza:
+          type: string
+        parametri:
+          type: array
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+        societa:
+          $ref: "#/components/schemas/Societa"
+        categoria:
+          $ref: "#/components/schemas/Categoria"
+    Coupon:
+      allOf:
+        - $ref: "#/components/schemas/BasicCoupon"
+        - type: object
+          required:
+            - couponId
+            - dataCreazione
+          properties:
+            couponId:
+              $ref: "#/components/schemas/objectId"
+            dataCreazione:
+              type: string
+    Coupons:
+      type: array
+      items:
+        $ref: "#/components/schemas/Coupon"
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+  parameters:
+    couponId:
+      name: couponId
+      in: path
+      description: Coupon id
+      required: true
+      schema:
+        type: string
+    page:
+      name: page
+      in: query
+      description: Page number for pagination
+      required: false
+      schema:
+        type: number
+    limit:
+      name: limit
+      in: query
+      description: Output limit
+      required: false
+      schema:
+        type: number
+    query:
+      name: query
+      in: query
+      description: Search query
+      required: false
+      schema:
+        type: string
+x-amazon-apigateway-request-validators:
+  all:
+    validateRequestBody: true
+    validateRequestParameters: true
+  params-only:
+    validateRequestBody: false
+    validateRequestParameters: true
+  body-only:
+    validateRequestBody: true
+    validateRequestParameters: false
+paths:
+  /coupons:
+    post:
+      description: Aggiunta di un nuovo coupon all'utente loggato
+      x-amazon-apigateway-request-validator: "all"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-addCoupon/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      requestBody:
+        description: Nuovo coupon
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasicCoupon"
+      responses:
+        '200':
+          description: Coupon inserito
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coupon"
+    get:
+      description: Lista dei coupon dell'utente loggato
+      x-amazon-apigateway-request-validator: "all"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-getCoupons/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      parameters:
+        - $ref: '#/components/parameters/query'
+      responses:
+        '200':
+          description: Coupons
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coupons"
+  /coupons/{couponId}:
+    get:
+      description: Informazioni del coupon
+      x-amazon-apigateway-request-validator: "all"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-getCoupon/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      parameters:
+        - $ref: '#/components/parameters/couponId'
+      responses:
+        '200':
+          description: Coupon
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coupon"
+    put:
+      description: Modifica di un coupon dell'utente loggato
+      x-amazon-apigateway-request-validator: "all"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-editCoupon/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      parameters:
+        - $ref: '#/components/parameters/couponId'
+      requestBody:
+        description: Nuovo coupon
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BasicCoupon"
+      responses:
+        '200':
+          description: Coupon modificato
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Coupon"
+    delete:
+      description: Elimina coupon
+      x-amazon-apigateway-request-validator: "params-only"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-deleteCoupon/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      parameters:
+        - $ref: '#/components/parameters/couponId'
+      responses:
+        '200':
+          description: Coupon eliminato con successo
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /societa:
+    get:
+      description: Lista delle societa predefinite emittenti i coupon
+      x-amazon-apigateway-request-validator: "all"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-getSocieta/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Elenco societa predefinite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArraySocieta"
+  /categorie:
+    get:
+      description: Lista delle categorie predefinite
+      x-amazon-apigateway-request-validator: "all"
+      x-amazon-apigateway-auth:
+        type: "AWS_IAM"
+      x-amazon-apigateway-integration:
+        type: "aws_proxy"
+        uri: arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${self:provider.region}:${self:provider.accountId}:function:${self:service.name}-${self:provider.stage}-getCategorie/invocations
+        credentials: arn:aws:iam::${self:provider.accountId}:role/apiInvokeRole
+        passthroughBehavior: "when_no_match"
+        httpMethod: "POST"
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/limit'
+      responses:
+        '200':
+          description: Elenco categorie predefinite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArrayCategoria"
+

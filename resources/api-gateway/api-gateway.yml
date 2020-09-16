@@ -1,0 +1,31 @@
+Resources:
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      StageName: ${self:provider.stage}
+  AccountRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - apigateway.amazonaws.com
+            Action:
+              - sts:AssumeRole
+  ApiGatewayRestApi:
+    Type: 'AWS::ApiGateway::RestApi'
+    Properties:
+      Name: ${self:service}
+      Body: ${file(resources/api-gateway/openapi.yml)}
+Outputs:
+  ApiGatewayArn:
+    Value:
+      Ref: ApiGatewayRestApi
+    Export:
+      Name: ${self:provider.stage}-ApiGatewayArn
